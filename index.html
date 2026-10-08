@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1800AD">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Mealy Machine Simulator</title>
+<style>
+  :root{
+    --primary:#1800AD; --primary2:#2A65A0; --band:#CBDDFF; --ink:#1E2630; --muted:#5b6678;
+    --bg:#EEF3FF; --card:#ffffff; --ok:#2E7D32; --bad:#C63D3D; --warn:#DA8526; --line:#d5def0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
+  html,body{margin:0;padding:0;height:100%}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+  .view{min-height:100%;max-width:520px;margin:0 auto}
+  /* ---------- Login ---------- */
+  #loginView{display:flex;align-items:center;justify-content:center;padding:24px 18px;
+    background:linear-gradient(180deg,var(--band) 0,var(--bg) 55%)}
+  .login-card{width:100%;background:var(--card);border-radius:22px;padding:26px 22px;box-shadow:0 10px 30px rgba(24,0,173,.15)}
+  .logo{width:64px;height:64px;border-radius:18px;background:var(--primary);color:#fff;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  h1{font-size:22px;text-align:center;margin:0 0 4px;color:var(--primary)}
+  .sub{text-align:center;color:var(--muted);font-size:13px;margin:0 0 18px}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--ink)}
+  input,select,textarea{width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;background:#fff;color:var(--ink);font-family:inherit}
+  textarea{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:14px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary2);box-shadow:0 0 0 3px rgba(42,101,160,.18)}
+  .pw{display:flex;gap:8px}
+  .pw button{flex:0 0 auto;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:600;color:var(--primary2)}
+  .seg{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:6px}
+  .seg button{flex:1;padding:10px;border:0;border-radius:9px;background:transparent;font-weight:700;color:var(--muted);font-size:15px}
+  .seg button.on{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .btn{border:0;border-radius:13px;padding:13px 16px;font-size:16px;font-weight:700;cursor:pointer}
+  .btn.primary{background:var(--primary);color:#fff}
+  .btn.ghost{background:#fff;color:var(--primary2);border:1.5px solid var(--primary2)}
+  .btn.danger{background:#fff;color:var(--bad);border:1.5px solid var(--bad)}
+  .btn.block{width:100%;margin-top:16px}
+  .btn:active{transform:scale(.98)}
+  .msg{min-height:20px;font-size:14px;margin-top:10px;color:var(--bad);font-weight:600}
+  .msg.ok{color:var(--ok)}
+  .hint{text-align:center;color:var(--muted);font-size:13px;margin:14px 0 0}
+  /* ---------- App ---------- */
+  #appView{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  header{position:sticky;top:0;z-index:10;background:var(--primary);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
+  header .t{flex:1;min-width:0}
+  header .t b{display:block;font-size:17px}
+  header .t span{font-size:12px;opacity:.85}
+  header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px}
+  main{padding:14px}
+  .card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(30,38,48,.08)}
+  .card h2{margin:0 0 10px;font-size:17px;color:var(--primary)}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{padding:10px 16px;border-radius:999px;border:1.5px solid var(--primary2);background:#fff;color:var(--primary2);font-weight:800;font-size:16px;min-width:48px}
+  .chip.util{border-color:var(--line);color:var(--muted)}
+  .tag{display:inline-block;background:var(--band);color:var(--primary);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700;margin:3px 4px 0 0}
+  .out-box{background:var(--ink);color:#7EE0A0;border-radius:14px;padding:14px;font-family:ui-monospace,Consolas,Menlo,monospace;font-size:22px;letter-spacing:3px;text-align:center;word-break:break-all;margin-top:6px}
+  .out-lbl{font-size:12px;color:var(--muted);font-weight:700;margin-top:10px;text-transform:uppercase;letter-spacing:.5px}
+  .path{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:14px;color:var(--primary);word-break:break-word}
+  .tbl-wrap{overflow-x:auto;margin-top:10px;border-radius:12px;border:1px solid var(--line)}
+  table{border-collapse:collapse;width:100%;font-size:14px;text-align:center}
+  th{background:var(--primary2);color:#fff;padding:9px 6px;font-weight:700;white-space:nowrap}
+  td{padding:8px 6px;border-top:1px solid var(--line)}
+  td.o{font-weight:800;color:var(--bad)}
+  #diagram{width:100%;background:#F7FAFF;border-radius:14px;border:1px solid var(--line)}
+  #diagram svg{width:100%;height:auto;display:block}
+  .now{font-size:14px;font-weight:600;color:var(--primary2);min-height:20px;margin-top:8px}
+  .errbox{background:#fdecec;color:var(--bad);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:600;margin-top:10px;white-space:pre-wrap}
+  .okbox{background:#e8f5e9;color:var(--ok);border-radius:12px;padding:10px 12px;font-size:14px;font-weight:600;margin-top:10px}
+  .test{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);margin-top:8px;background:#fff}
+  .test.pass{border-color:#b7dfba;background:#f3fbf4}
+  .test.fail{border-color:#f0b8b8;background:#fdf3f3}
+  .test .badge{flex:0 0 auto;font-weight:800;font-size:12px;border-radius:8px;padding:5px 8px;color:#fff}
+  .pass .badge{background:var(--ok)} .fail .badge{background:var(--bad)}
+  .test .d{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:13px;min-width:0;word-break:break-word}
+  .sumbar{font-weight:800;font-size:17px;padding:12px;border-radius:12px;text-align:center;margin-top:10px}
+  .sumbar.pass{background:#e8f5e9;color:var(--ok)} .sumbar.fail{background:#fdecec;color:var(--bad)}
+  .small{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .hist{padding:11px 0;border-top:1px solid var(--line);font-size:14px}
+  .hist:first-child{border-top:0}
+  .hist .m{font-size:12px;color:var(--muted)}
+  .hist code{font-family:ui-monospace,Consolas,Menlo,monospace;font-weight:700;color:var(--primary)}
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--line);display:flex;max-width:520px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;border:0;background:transparent;padding:9px 2px 8px;font-size:11px;font-weight:700;color:var(--muted)}
+  nav button span{display:block;font-size:21px;line-height:1.2}
+  nav button.on{color:var(--primary)}
+  nav button.on span{transform:translateY(-1px)}
+</style>
+</head>
+<body>
+
+<!-- ======================= LOGIN ======================= -->
+<div id="loginView" class="view">
+  <div class="login-card">
+    <div class="logo">⚙️</div>
+    <h1>Mealy Machine Simulator</h1>
+    <p class="sub">Theory of Computation · Parul Nakade (CM24030)</p>
+    <div class="seg">
+      <button id="tabLogin" class="on" type="button">Login</button>
+      <button id="tabReg" type="button">Register</button>
+    </div>
+    <label for="uName">Username</label>
+    <input id="uName" autocomplete="username" autocapitalize="none" placeholder="Enter username">
+    <label for="uPass">Password</label>
+    <div class="pw">
+      <input id="uPass" type="password" autocomplete="current-password" placeholder="Enter password">
+      <button id="showPw" type="button">Show</button>
+    </div>
+    <div id="confirmWrap" hidden>
+      <label for="uPass2">Confirm password</label>
+      <input id="uPass2" type="password" autocomplete="new-password" placeholder="Re-enter password">
+    </div>
+    <div id="authMsg" class="msg"></div>
+    <button id="authBtn" class="btn primary block" type="button">Login</button>
+    <p class="hint">Demo account: <b>admin</b> / <b>admin123</b></p>
+  </div>
+</div>
+
+<!-- ======================= APP ======================= -->
+<div id="appView" class="view" hidden>
+  <header>
+    <div class="t"><b>Mealy Machine Simulator</b><span id="whoami"></span></div>
+    <button id="logoutBtn" type="button">Logout</button>
+  </header>
+
+  <main>
+    <!-- SIMULATE -->
+    <section id="tab-sim">
+      <div class="card">
+        <h2>Machine</h2>
+        <select id="presetSel" aria-label="Choose machine"></select>
+        <div id="machineTags"></div>
+        <div id="machineErr"></div>
+      </div>
+
+      <div class="card">
+        <h2>Input Sequence</h2>
+        <input id="inputSeq" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. 1101">
+        <div class="chips" id="symChips"></div>
+        <div class="row" style="margin-top:14px">
+          <button id="runBtn" class="btn primary" type="button">▶ Run</button>
+          <button id="playBtn" class="btn ghost" type="button">⏵ Animate</button>
+        </div>
+        <div id="runErr"></div>
+      </div>
+
+      <div class="card" id="resultCard" hidden>
+        <h2>Result</h2>
+        <div class="out-lbl">Input</div>
+        <div class="out-box" style="color:#fff;font-size:18px" id="resIn"></div>
+        <div class="out-lbl">Output sequence</div>
+        <div class="out-box" id="resOut"></div>
+        <div class="out-lbl">State path</div>
+        <div class="path" id="resPath"></div>
+        <div class="tbl-wrap"><table id="stepTbl"></table></div>
+      </div>
+
+      <div class="card">
+        <h2>State Diagram</h2>
+        <div id="diagram"></div>
+        <div class="now" id="nowLine">Edge label format: input / output</div>
+      </div>
+    </section>
+
+    <!-- MACHINE EDITOR -->
+    <section id="tab-mach" hidden>
+      <div class="card">
+        <h2>Machine Definition</h2>
+        <label for="mName">Machine name</label>
+        <input id="mName" placeholder="My machine">
+        <label for="mStates">States (comma separated)</label>
+        <input id="mStates" placeholder="q0,q1" autocapitalize="none">
+        <div class="row">
+          <div><label for="mIn">Input alphabet</label><input id="mIn" placeholder="0,1" autocapitalize="none"></div>
+          <div><label for="mOut">Output alphabet</label><input id="mOut" placeholder="0,1" autocapitalize="none"></div>
+        </div>
+        <label for="mStart">Start state</label>
+        <input id="mStart" placeholder="q0" autocapitalize="none">
+        <label for="mTrans">Transitions — one per line: <i>state input nextState output</i></label>
+        <textarea id="mTrans" rows="9" spellcheck="false" autocapitalize="none"></textarea>
+        <div class="small">Symbols are single characters. Lines starting with # are ignored. Example: <b>q0 1 q1 0</b> means: in q0, on input 1, go to q1 and output 0.</div>
+        <button id="applyBtn" class="btn primary block" type="button">✔ Apply & Validate</button>
+        <div id="applyMsg"></div>
+      </div>
+    </section>
+
+    <!-- TESTS -->
+    <section id="tab-test" hidden>
+      <div class="card">
+        <h2>Test Cases</h2>
+        <label for="testArea">One per line: <i>input -&gt; expected output</i></label>
+        <textarea id="testArea" rows="8" spellcheck="false" autocapitalize="none"></textarea>
+        <div class="small">Use <b>ERROR</b> as expected output when an input must be rejected (e.g. invalid symbol). Leave the right side empty for an empty output.</div>
+        <div class="row" style="margin-top:14px">
+          <button id="runTestsBtn" class="btn primary" type="button">▶ Run All Tests</button>
+          <button id="runAllMachinesBtn" class="btn ghost" type="button">Test All Machines</button>
+        </div>
+        <div id="testOut"></div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="tab-hist" hidden>
+      <div class="card">
+        <h2>Run History</h2>
+        <div id="histList"></div>
+        <button id="clearHist" class="btn danger block" type="button">Clear history</button>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button data-tab="sim" class="on" type="button"><span>▶️</span>Simulate</button>
+    <button data-tab="mach" type="button"><span>🛠️</span>Machine</button>
+    <button data-tab="test" type="button"><span>✅</span>Tests</button>
+    <button data-tab="hist" type="button"><span>🕘</span>History</button>
+  </nav>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   MEALY MACHINE ENGINE
+   M = (Q, Σ, Δ, δ, λ, q0)  — output is produced on every transition
+   ===================================================================== */
+// ===ENGINE START
+function splitList(s){ return String(s||"").split(/[\s,]+/).map(x=>x.trim()).filter(Boolean); }
+
+function parseMachine(cfg){
+  const errors = [];
+  const states = splitList(cfg.states);
+  const inA = splitList(cfg.inAlpha);
+  const outA = splitList(cfg.outAlpha);
+  const start = String(cfg.start||"").trim();
+  if(!states.length) errors.push("Define at least one state.");
+  if(new Set(states).size !== states.length) errors.push("State names must be unique.");
+  if(!inA.length) errors.push("Define the input alphabet.");
+  if(!outA.length) errors.push("Define the output alphabet.");
+  inA.concat(outA).forEach(s=>{ if(s.length!==1) errors.push("Symbol '"+s+"' must be a single character."); });
+  if(states.length && !states.includes(start)) errors.push("Start state '"+start+"' is not in the state list.");
+
+  const delta = {};
+  String(cfg.transitions||"").split(/\r?\n/).forEach((raw,idx)=>{
+    const line = raw.trim();
+    if(!line || line.startsWith("#")) return;
+    const t = line.replace(/->|\//g," ").split(/[\s,]+/).filter(Boolean);
+    if(t.length!==4){ errors.push("Line "+(idx+1)+": expected 'state input nextState output'."); return; }
+    const [q,a,q2,o] = t;
+    if(!states.includes(q)) errors.push("Line "+(idx+1)+": unknown state '"+q+"'.");
+    if(!states.includes(q2)) errors.push("Line "+(idx+1)+": unknown next state '"+q2+"'.");
+    if(!inA.includes(a)) errors.push("Line "+(idx+1)+": input '"+a+"' not in input alphabet.");
+    if(!outA.includes(o)) errors.push("Line "+(idx+1)+": output '"+o+"' not in output alphabet.");
+    const key = q+"|"+a;
+    if(delta[key]) errors.push("Line "+(idx+1)+": duplicate transition for ("+q+", "+a+").");
+    delta[key] = {next:q2, out:o};
+  });
+  if(!Object.keys(delta).length && !errors.length) errors.push("Add at least one transition.");
+
+  const missing = [];
+  states.forEach(q=>inA.forEach(a=>{ if(!delta[q+"|"+a]) missing.push("("+q+", "+a+")"); }));
+
+  if(errors.length) return {ok:false, errors, missing};
+  return {ok:true, errors:[], missing, machine:{name:cfg.name||"Custom", states, inA, outA, start, delta}};
+}
+
+function simulate(M, inputStr){
+  const syms = String(inputStr||"").replace(/[\s,]/g,"").split("");
+  let state = M.start;
+  const steps = [];
+  let output = "";
+  for(let i=0;i<syms.length;i++){
+    const a = syms[i];
+    if(!M.inA.includes(a))
+      return {ok:false, error:"Invalid input symbol '"+a+"' at position "+(i+1)+". Allowed: "+M.inA.join(", ")+".", steps, output, state};
+    const tr = M.delta[state+"|"+a];
+    if(!tr)
+      return {ok:false, error:"No transition defined for ("+state+", "+a+") at position "+(i+1)+".", steps, output, state};
+    steps.push({i:i+1, from:state, sym:a, to:tr.next, out:tr.out});
+    output += tr.out;
+    state = tr.next;
+  }
+  return {ok:true, steps, output, state, input:syms.join("")};
+}
+
+function parseTests(text){
+  const list = [];
+  String(text||"").split(/\r?\n/).forEach(raw=>{
+    const line = raw.trim();
+    if(!line || line.startsWith("#")) return;
+    const k = line.indexOf("->");
+    if(k<0) return;
+    const input = line.slice(0,k).replace(/[\s,]/g,"");
+    let exp = line.slice(k+2).trim();
+    const expectError = exp.toUpperCase()==="ERROR";
+    if(exp==="-" || exp==="ε") exp = "";
+    list.push({input, expected: expectError ? null : exp.replace(/[\s,]/g,""), expectError});
+  });
+  return list;
+}
+
+function runTests(M, tests){
+  return tests.map(t=>{
+    const r = simulate(M, t.input);
+    let pass, got;
+    if(t.expectError){ pass = !r.ok; got = r.ok ? r.output : "ERROR"; }
+    else { pass = r.ok && r.output===t.expected; got = r.ok ? r.output : "ERROR"; }
+    return {input:t.input, expected: t.expectError?"ERROR":t.expected, got, pass};
+  });
+}
+// ===ENGINE END
+
+/* =====================================================================
+   BUILT-IN MACHINES + TEST CASES
+   ===================================================================== */
+const PRESETS = {
+  detect11: {
+    name:"“11” Detector (outputs 1 on 2nd consecutive 1)",
+    states:"q0,q1", inAlpha:"0,1", outAlpha:"0,1", start:"q0",
+    transitions:["q0 0 q0 0","q0 1 q1 0","q1 0 q0 0","q1 1 q1 1"].join("\n"),
+    tests:["1101 -> 0100","1111 -> 0111","0000 -> 0000","0110 -> 0010","10101 -> 00000","11011 -> 01001","1 -> 0","-> ","12 -> ERROR","abc -> ERROR"].join("\n")
+  },
+  detect101: {
+    name:"“101” Detector (overlapping)",
+    states:"q0,q1,q2", inAlpha:"0,1", outAlpha:"0,1", start:"q0",
+    transitions:["q0 0 q0 0","q0 1 q1 0","q1 0 q2 0","q1 1 q1 0","q2 0 q0 0","q2 1 q1 1"].join("\n"),
+    tests:["10101 -> 00101","101101 -> 001001","000 -> 000","111 -> 000","101 -> 001","1010101 -> 0010101","2 -> ERROR"].join("\n")
+  },
+  complement: {
+    name:"1's Complement (bit flipper)",
+    states:"q0", inAlpha:"0,1", outAlpha:"0,1", start:"q0",
+    transitions:["q0 0 q0 1","q0 1 q0 0"].join("\n"),
+    tests:["1010 -> 0101","0000 -> 1111","1111 -> 0000","0 -> 1","1 -> 0","-> ","01x -> ERROR"].join("\n")
+  },
+  parity: {
+    name:"Running Parity (q0 = even, q1 = odd)",
+    states:"q0,q1", inAlpha:"0,1", outAlpha:"0,1", start:"q0",
+    transitions:["q0 0 q0 0","q0 1 q1 1","q1 0 q1 1","q1 1 q0 0"].join("\n"),
+    tests:["1101 -> 1001","111 -> 101","000 -> 000","1 -> 1","11 -> 10","10101 -> 10010","3 -> ERROR"].join("\n")
+  },
+  incrementer: {
+    name:"Binary +1 Incrementer (LSB first)",
+    states:"c0,c1", inAlpha:"0,1", outAlpha:"0,1", start:"c1",
+    transitions:["c1 0 c0 1","c1 1 c1 0","c0 0 c0 0","c0 1 c0 1"].join("\n"),
+    tests:["1101 -> 0011","0 -> 1","10 -> 01","111 -> 000","0101 -> 1101","1 -> 0","2 -> ERROR"].join("\n")
+  },
+  custom: {
+    name:"Custom machine (edit in Machine tab)",
+    states:"A,B", inAlpha:"a,b", outAlpha:"x,y", start:"A",
+    transitions:["A a A x","A b B y","B a A y","B b B x"].join("\n"),
+    tests:["abba -> xyyx","aaaa -> xxxx","bbbb -> yxxx","ab -> xy","c -> ERROR"].join("\n")
+  }
+};
+
+/* =====================================================================
+   HELPERS / STORAGE
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mem = {};
+const store = {
+  get(k){ try{ const v = localStorage.getItem(k); return v===null ? (mem[k]??null) : v; }catch(e){ return mem[k]??null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ mem[k]=v; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} delete mem[k]; }
+};
+function hash(s){ // small non-cryptographic hash (demo only)
+  let h1=0xdeadbeef, h2=0x41c6ce57;
+  for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); h1=Math.imul(h1^c,2654435761); h2=Math.imul(h2^c,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36);
+}
+function loadUsers(){ try{ return JSON.parse(store.get("mealy_users")||"{}"); }catch(e){ return {}; } }
+function saveUsers(u){ store.set("mealy_users", JSON.stringify(u)); }
+(function seed(){ const u = loadUsers(); if(!u.admin){ u.admin = hash("admin123"); saveUsers(u); } })();
+
+/* =====================================================================
+   LOGIN / REGISTER
+   ===================================================================== */
+let mode = "login", currentUser = null;
+function setMode(m){
+  mode = m;
+  $("#tabLogin").classList.toggle("on", m==="login");
+  $("#tabReg").classList.toggle("on", m==="reg");
+  $("#confirmWrap").hidden = m!=="reg";
+  $("#authBtn").textContent = m==="login" ? "Login" : "Create account";
+  $("#uPass").autocomplete = m==="login" ? "current-password" : "new-password";
+  authMsg("");
+}
+function authMsg(t, ok){ const e=$("#authMsg"); e.textContent=t; e.className = "msg"+(ok?" ok":""); }
+function doAuth(){
+  const name = $("#uName").value.trim().toLowerCase();
+  const pass = $("#uPass").value;
+  if(!name || !pass){ authMsg("Enter username and password."); return; }
+  const users = loadUsers();
+  if(mode==="login"){
+    if(users[name] && users[name]===hash(pass)){ startSession(name); }
+    else authMsg("Wrong username or password.");
+  } else {
+    if(!/^[a-z0-9_.-]{3,20}$/.test(name)){ authMsg("Username: 3–20 letters, digits, _ . -"); return; }
+    if(pass.length<4){ authMsg("Password must be at least 4 characters."); return; }
+    if(pass!==$("#uPass2").value){ authMsg("Passwords do not match."); return; }
+    if(users[name]){ authMsg("That username already exists."); return; }
+    users[name] = hash(pass); saveUsers(users);
+    startSession(name);
+  }
+}
+function startSession(name){
+  currentUser = name;
+  store.set("mealy_session", name);
+  $("#loginView").hidden = true;
+  $("#appView").hidden = false;
+  $("#whoami").textContent = "Logged in as " + name;
+  $("#uPass").value = ""; $("#uPass2").value = "";
+  initApp();
+  window.scrollTo(0,0);
+}
+function logout(){
+  store.del("mealy_session"); currentUser = null; stopPlay();
+  $("#appView").hidden = true; $("#loginView").hidden = false;
+  setMode("login"); authMsg("Logged out.", true);
+}
+$("#tabLogin").onclick = ()=>setMode("login");
+$("#tabReg").onclick = ()=>setMode("reg");
+$("#authBtn").onclick = doAuth;
+$("#showPw").onclick = ()=>{ const p=$("#uPass"); const show = p.type==="password"; p.type = show?"text":"password"; $("#showPw").textContent = show?"Hide":"Show"; };
+["uName","uPass","uPass2"].forEach(id=>$("#"+id).addEventListener("keydown",e=>{ if(e.key==="Enter") doAuth(); }));
+$("#logoutBtn").onclick = logout;
+
+/* =====================================================================
+   APP STATE
+   ===================================================================== */
+let M = null;          // active parsed machine
+let lastRun = null;    // last successful simulation
+let playToken = 0;
+
+let appReady = false;
+function initApp(){
+  if(!appReady){
+    const sel = $("#presetSel");
+    sel.innerHTML = Object.keys(PRESETS).map(k=>`<option value="${k}">${esc(PRESETS[k].name)}</option>`).join("");
+    sel.onchange = ()=>loadPreset(sel.value);
+    $("#inputSeq").addEventListener("keydown",e=>{ if(e.key==="Enter") runSim(); });
+    $("#runBtn").onclick = runSim;
+    $("#playBtn").onclick = playSim;
+    $("#applyBtn").onclick = applyFromForm;
+    $("#runTestsBtn").onclick = runTestsUI;
+    $("#runAllMachinesBtn").onclick = runAllMachines;
+    $("#clearHist").onclick = ()=>{ store.del("mealy_hist_"+currentUser); renderHistory(); };
+    $$("nav button").forEach(b=>b.onclick = ()=>showTab(b.dataset.tab));
+    appReady = true;
+  }
+  showTab("sim");
+  $("#presetSel").value = "detect11";
+  loadPreset("detect11");
+  renderHistory();
+}
+function showTab(t){
+  stopPlay();
+  ["sim","mach","test","hist"].forEach(x=>$("#tab-"+x).hidden = x!==t);
+  $$("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
+  if(t==="hist") renderHistory();
+  window.scrollTo(0,0);
+}
+function loadPreset(key){
+  const p = PRESETS[key];
+  $("#mName").value = p.name;
+  $("#mStates").value = p.states;
+  $("#mIn").value = p.inAlpha;
+  $("#mOut").value = p.outAlpha;
+  $("#mStart").value = p.start;
+  $("#mTrans").value = p.transitions;
+  $("#testArea").value = p.tests;
+  $("#applyMsg").innerHTML = ""; $("#testOut").innerHTML = "";
+  applyFromForm(true);
+  const first = p.tests.split("\n")[0] || "";
+  $("#inputSeq").value = (first.split("->")[0]||"").trim();
+  $("#resultCard").hidden = true; $("#runErr").innerHTML = "";
+}
+function readForm(){
+  return {name:$("#mName").value.trim()||"Custom", states:$("#mStates").value, inAlpha:$("#mIn").value,
+          outAlpha:$("#mOut").value, start:$("#mStart").value, transitions:$("#mTrans").value};
+}
+function applyFromForm(silent){
+  stopPlay();
+  const r = parseMachine(readForm());
+  const box = $("#applyMsg");
+  if(!r.ok){
+    box.innerHTML = `<div class="errbox">${esc(r.errors.join("\n"))}</div>`;
+    if(silent!==true) showTab("mach");
+    return false;
+  }
+  M = r.machine;
+  let html = `<div class="okbox">✔ Machine is valid and applied.</div>`;
+  if(r.missing.length) html += `<div class="errbox" style="background:#fff4e5;color:#9a5a10">Note: no transition for ${esc(r.missing.join(", "))}. Inputs that reach these will be rejected.</div>`;
+  box.innerHTML = html;
+  renderMachineInfo();
+  renderDiagram({});
+  $("#resultCard").hidden = true;
+  return true;
+}
+function renderMachineInfo(){
+  $("#machineTags").innerHTML =
+    `<span class="tag">States: {${esc(M.states.join(", "))}}</span>` +
+    `<span class="tag">Σ: {${esc(M.inA.join(", "))}}</span>` +
+    `<span class="tag">Δ: {${esc(M.outA.join(", "))}}</span>` +
+    `<span class="tag">Start: ${esc(M.start)}</span>`;
+  const chips = $("#symChips");
+  chips.innerHTML = M.inA.map(s=>`<button class="chip" type="button" data-s="${esc(s)}">${esc(s)}</button>`).join("") +
+    `<button class="chip util" type="button" data-s="__back">⌫</button><button class="chip util" type="button" data-s="__clr">Clear</button>`;
+  $$("#symChips .chip").forEach(b=>b.onclick = ()=>{
+    const inp = $("#inputSeq"), s = b.dataset.s;
+    if(s==="__back") inp.value = inp.value.slice(0,-1);
+    else if(s==="__clr") inp.value = "";
+    else inp.value += s;
+  });
+}
+
+/* =====================================================================
+   SIMULATE
+   ===================================================================== */
+function runSim(){
+  stopPlay();
+  $("#runErr").innerHTML = "";
+  if(!M){ $("#runErr").innerHTML = `<div class="errbox">Apply a valid machine first.</div>`; return null; }
+  const raw = $("#inputSeq").value;
+  const r = simulate(M, raw);
+  if(!r.ok){
+    $("#resultCard").hidden = true;
+    $("#runErr").innerHTML = `<div class="errbox">${esc(r.error)}</div>`;
+    renderDiagram({});
+    return null;
+  }
+  lastRun = r;
+  $("#resultCard").hidden = false;
+  $("#resIn").textContent = r.input || "ε (empty)";
+  $("#resOut").textContent = r.output || "ε (empty)";
+  $("#resPath").textContent = [M.start].concat(r.steps.map(s=>s.to)).join(" → ");
+  let t = `<tr><th>#</th><th>State</th><th>Input</th><th>Next</th><th>Output</th></tr>`;
+  r.steps.forEach(s=>{ t += `<tr><td>${s.i}</td><td>${esc(s.from)}</td><td>${esc(s.sym)}</td><td>${esc(s.to)}</td><td class="o">${esc(s.out)}</td></tr>`; });
+  if(!r.steps.length) t += `<tr><td colspan="5">No input — output is empty, machine stays in ${esc(M.start)}</td></tr>`;
+  $("#stepTbl").innerHTML = t;
+  renderDiagram({state:r.state});
+  $("#nowLine").textContent = "Final state: " + r.state;
+  saveHistory(r);
+  $("#resultCard").scrollIntoView({behavior:"smooth", block:"nearest"});
+  return r;
+}
+function stopPlay(){ playToken++; }
+function playSim(){
+  const r = runSim();
+  if(!r) return;
+  const token = ++playToken;
+  const steps = r.steps;
+  let k = 0, soFar = "";
+  $("#diagram").scrollIntoView({behavior:"smooth", block:"center"});
+  renderDiagram({state:M.start});
+  $("#nowLine").textContent = "Start in " + M.start;
+  function tick(){
+    if(token!==playToken) return;
+    if(k>=steps.length){
+      renderDiagram({state:r.state});
+      $("#nowLine").textContent = "Done ✔  Output = " + (r.output || "ε");
+      return;
+    }
+    const s = steps[k++];
+    soFar += s.out;
+    renderDiagram({state:s.to, edge:s.from+">"+s.to});
+    $("#nowLine").textContent = `Step ${s.i}: ${s.from} --${s.sym}/${s.out}--> ${s.to}   | output so far: ${soFar}`;
+    setTimeout(tick, 900);
+  }
+  setTimeout(tick, 600);
+}
+
+/* ---------- History ---------- */
+function saveHistory(r){
+  const key = "mealy_hist_"+currentUser;
+  let h = []; try{ h = JSON.parse(store.get(key)||"[]"); }catch(e){}
+  h.unshift({t:Date.now(), m:M.name, i:r.input, o:r.output});
+  store.set(key, JSON.stringify(h.slice(0,30)));
+}
+function renderHistory(){
+  let h = []; try{ h = JSON.parse(store.get("mealy_hist_"+currentUser)||"[]"); }catch(e){}
+  $("#histList").innerHTML = h.length ? h.map(x=>
+    `<div class="hist"><code>${esc(x.i||"ε")}</code> → <code>${esc(x.o||"ε")}</code><div class="m">${esc(x.m)} · ${new Date(x.t).toLocaleString()}</div></div>`
+  ).join("") : `<div class="small">No runs yet. Go to Simulate and press Run.</div>`;
+}
+
+/* =====================================================================
+   TESTS
+   ===================================================================== */
+function renderTestResults(res, title){
+  const passed = res.filter(r=>r.pass).length;
+  let html = title ? `<div class="out-lbl">${esc(title)}</div>` : "";
+  html += res.map(r=>`
+    <div class="test ${r.pass?"pass":"fail"}">
+      <span class="badge">${r.pass?"PASS":"FAIL"}</span>
+      <div class="d">in: <b>${esc(r.input||"ε")}</b><br>expected: <b>${esc(r.expected===""?"ε":r.expected)}</b> · got: <b>${esc(r.got===""?"ε":r.got)}</b></div>
+    </div>`).join("");
+  html += `<div class="sumbar ${passed===res.length?"pass":"fail"}">${passed} / ${res.length} tests passed</div>`;
+  return html;
+}
+function runTestsUI(){
+  if(!M && !applyFromForm()) return;
+  const tests = parseTests($("#testArea").value);
+  if(!tests.length){ $("#testOut").innerHTML = `<div class="errbox">No valid test lines. Use: input -> expected</div>`; return; }
+  $("#testOut").innerHTML = renderTestResults(runTests(M, tests), M.name);
+}
+function runAllMachines(){
+  let html = "", total = 0, ok = 0;
+  Object.keys(PRESETS).forEach(k=>{
+    const p = PRESETS[k];
+    const r = parseMachine({name:p.name, states:p.states, inAlpha:p.inAlpha, outAlpha:p.outAlpha, start:p.start, transitions:p.transitions});
+    if(!r.ok){ html += `<div class="errbox">${esc(p.name)}: ${esc(r.errors.join("; "))}</div>`; return; }
+    const res = runTests(r.machine, parseTests(p.tests));
+    total += res.length; ok += res.filter(x=>x.pass).length;
+    const pc = res.filter(x=>x.pass).length;
+    html += `<div class="test ${pc===res.length?"pass":"fail"}"><span class="badge">${pc===res.length?"PASS":"FAIL"}</span><div class="d"><b>${esc(p.name)}</b><br>${pc} / ${res.length} tests passed</div></div>`;
+  });
+  html += `<div class="sumbar ${ok===total?"pass":"fail"}">All machines: ${ok} / ${total} tests passed</div>`;
+  $("#testOut").innerHTML = html;
+}
+
+/* =====================================================================
+   STATE DIAGRAM (SVG)
+   ===================================================================== */
+function renderDiagram(hl){
+  if(!M){ $("#diagram").innerHTML = ""; return; }
+  const W = 340, H = 280, cx = W/2, cy = H/2 + 6, R = 24;
+  const n = M.states.length;
+  const radius = n===1 ? 0 : (n===2 ? 105 : Math.min(100, 40 + n*14));
+  const pos = {};
+  M.states.forEach((s,i)=>{
+    const ang = Math.PI + 2*Math.PI*i/n;
+    pos[s] = {x: cx + radius*Math.cos(ang), y: cy + radius*Math.sin(ang)};
+  });
+  // group transitions by from>to
+  const edges = {};
+  Object.keys(M.delta).forEach(k=>{
+    const [q,a] = k.split("|"); const t = M.delta[k];
+    const ek = q+">"+t.next;
+    (edges[ek] = edges[ek] || {from:q, to:t.next, labels:[]}).labels.push(a+"/"+t.out);
+  });
+  const rot = (ux,uy,th)=>({x:ux*Math.cos(th)-uy*Math.sin(th), y:ux*Math.sin(th)+uy*Math.cos(th)});
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial,sans-serif">
+    <defs>
+      <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#2A65A0"/></marker>
+      <marker id="ahA" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#DA8526"/></marker>
+    </defs>`;
+  Object.keys(edges).forEach(ek=>{
+    const e = edges[ek], a = pos[e.from], b = pos[e.to];
+    const active = hl.edge===ek;
+    const col = active ? "#DA8526" : "#2A65A0", mk = active ? "ahA" : "ah", sw = active ? 3.2 : 1.8;
+    const label = e.labels.join(", ");
+    let d, lx, ly;
+    if(e.from===e.to){
+      let ux = a.x-cx, uy = a.y-cy; const L = Math.hypot(ux,uy);
+      if(L<1){ ux=0; uy=-1; } else { ux/=L; uy/=L; }
+      const p1 = rot(ux,uy,-0.5), p2 = rot(ux,uy,0.5), c1 = rot(ux,uy,-0.55), c2 = rot(ux,uy,0.55);
+      d = `M${a.x+p1.x*R},${a.y+p1.y*R} C${a.x+c1.x*(R+50)},${a.y+c1.y*(R+50)} ${a.x+c2.x*(R+50)},${a.y+c2.y*(R+50)} ${a.x+p2.x*(R+3)},${a.y+p2.y*(R+3)}`;
+      lx = a.x + ux*(R+42); ly = a.y + uy*(R+42);
+    } else {
+      const dx = b.x-a.x, dy = b.y-a.y, L = Math.hypot(dx,dy), ux = dx/L, uy = dy/L;
+      const nx = -uy, ny = ux;
+      const p0 = {x:a.x+ux*R, y:a.y+uy*R}, p2 = {x:b.x-ux*(R+3), y:b.y-uy*(R+3)};
+      const c = {x:(a.x+b.x)/2 + nx*34, y:(a.y+b.y)/2 + ny*34};
+      d = `M${p0.x},${p0.y} Q${c.x},${c.y} ${p2.x},${p2.y}`;
+      lx = 0.25*p0.x + 0.5*c.x + 0.25*p2.x + nx*11; ly = 0.25*p0.y + 0.5*c.y + 0.25*p2.y + ny*11;
+    }
+    svg += `<path d="${d}" fill="none" stroke="${col}" stroke-width="${sw}" marker-end="url(#${mk})"/>`;
+    svg += `<text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="12" font-weight="700" fill="${active?"#DA8526":"#1800AD"}" stroke="#F7FAFF" stroke-width="3" paint-order="stroke">${esc(label)}</text>`;
+  });
+  M.states.forEach(s=>{
+    const p = pos[s], cur = hl.state===s;
+    if(s===M.start) svg += `<path d="M${p.x-R-30},${p.y} L${p.x-R-2},${p.y}" stroke="#1800AD" stroke-width="2.2" marker-end="url(#ah)"/>`;
+    svg += `<circle cx="${p.x}" cy="${p.y}" r="${R}" fill="${cur?"#FFE2B8":"#CBDDFF"}" stroke="${cur?"#DA8526":"#2A65A0"}" stroke-width="${cur?3.5:2.2}"/>`;
+    svg += `<text x="${p.x}" y="${p.y+5}" text-anchor="middle" font-size="14" font-weight="800" fill="#1E2630">${esc(s)}</text>`;
+  });
+  svg += `</svg>`;
+  $("#diagram").innerHTML = svg;
+}
+
+/* =====================================================================
+   BOOT — auto login if a session exists
+   ===================================================================== */
+(function boot(){
+  const s = store.get("mealy_session");
+  if(s && loadUsers()[s]) startSession(s);
+})();
+</script>
+</body>
+</html>
